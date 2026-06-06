@@ -1,0 +1,29 @@
+{
+  "name": "mascot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "start": "electron .",
+    "build": "vite build",
+    "package": "npm run build && electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "electron": "^42.3.3",
+    "electron-builder": "^26.15.0",
+    "electron-store": "^11.0.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "uiohook-napi": "^1.5.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.2",
+    "vite": "^8.0.16"
+  }
+}

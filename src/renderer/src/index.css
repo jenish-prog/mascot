@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+  background-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  color: #fff;
+}
+
+/* Glassmorphism custom dialog / bubble style if needed */
+.speech-bubble {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  transform: translateY(10px);
+  opacity: 0;
+  animation: floatIn 0.3s forwards ease-out;
+  z-index: 1000;
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 30px;
+  border-width: 6px 6px 0;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.15) transparent;
+  display: block;
+  width: 0;
+}
+
+@keyframes floatIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.mascot-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Draggable cursor indicator */
+.mascot-sprite {
+  cursor: grab;
+  image-rendering: pixelated;
+  transition: transform 0.1s ease;
+}
+
+.mascot-sprite:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
