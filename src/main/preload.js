@@ -31,4 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('global-cursor', listener);
     return () => ipcRenderer.removeListener('global-cursor', listener);
   },
+  onGlobalScroll: (callback) => {
+    const listener = (event, value) => callback(value);
+    ipcRenderer.on('global-scroll', listener);
+    return () => ipcRenderer.removeListener('global-scroll', listener);
+  },
 });

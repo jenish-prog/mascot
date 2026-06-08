@@ -1,20 +1,30 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import idle1 from '../assets/sprites/idle_1.png';
 import idle2 from '../assets/sprites/idle_2.png';
 import typing1 from '../assets/sprites/typing_1.png';
 import typing2 from '../assets/sprites/typing_2.png';
+import typingRed1 from '../assets/sprites/typing_red_1.png';
+import typingRed2 from '../assets/sprites/typing_red_2.png';
 import sleeping1 from '../assets/sprites/sleeping_1.png';
 import sleeping2 from '../assets/sprites/sleeping_2.png';
 import dragging1 from '../assets/sprites/dragging_1.png';
 import hunting1 from '../assets/sprites/hunting_1.png';
 import hunting2 from '../assets/sprites/hunting_2.png';
+import petting1 from '../assets/sprites/petting_1.png';
+import petting2 from '../assets/sprites/petting_2.png';
+import scroll1 from '../assets/sprites/scroll_1.png';
+import scroll2 from '../assets/sprites/scroll_2.png';
+import heartSprite from '../assets/sprites/heart.png';
 
 const SPRITES = {
   idle: [idle1, idle2],
   typing: [typing1, typing2],
+  typing_red: [typingRed1, typingRed2],
   sleeping: [sleeping1, sleeping2],
   dragging: [dragging1],
-  hunting: [hunting1, hunting2]
+  hunting: [hunting1, hunting2],
+  petting: [petting1, petting2],
+  scrolling: [scroll1, scroll2]
 };
 
 // Flood-fill algorithm starting from borders to remove solid white background
@@ -153,14 +163,14 @@ const findConnectedEyes = (ctx, width, height, pixelTest) => {
     }
   }
 
-  // Filter components to find the circular eyeballs inside the upper half of the head
+  // Filter components to find the circular eyeballs inside the head
   const candidates = components.filter(c => {
     const aspectRatio = c.width / c.height;
     return (
       c.pixelCount > 100 && c.pixelCount < 30000 &&
       aspectRatio > 0.6 && aspectRatio < 1.6 &&
-      c.centerY > height * 0.2 && c.centerY < height * 0.6 &&
-      c.centerX > width * 0.15 && c.centerX < width * 0.85
+      c.centerY > height * 0.15 && c.centerY < height * 0.8 &&
+      c.centerX > width * 0.1 && c.centerX < width * 0.9
     );
   });
 
@@ -218,9 +228,132 @@ const findEyes = (ctx, width, height) => {
   return null;
 };
 
-export default function Mascot({ state, frame, scale, onDragStart }) {
+export default function Mascot({ state, frame, scale, typingHeat = 0, onDragStart, onPet }) {
   const canvasRef = useRef(null);
   const cacheCanvasRef = useRef(document.createElement('canvas'));
+
+  const [hearts, setHearts] = useState([]);
+  const [transparentHeartUrl, setTransparentHeartUrl] = useState(null);
+  const [steamPuffs, setSteamPuffs] = useState([]);
+  const lastMovePosRef = useRef({ x: 0, y: 0 });
+  const petHistoryRef = useRef([]);
+
+  // Transparentize the heart sprite once on mount
+  useEffect(() => {
+    const img = new Image();
+    img.src = heartSprite;
+    img.onload = () => {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+      tempCtx.drawImage(img, 0, 0);
+      removeBackground(tempCtx, img.width, img.height);
+      setTransparentHeartUrl(tempCanvas.toDataURL());
+    };
+  }, []);
+
+  // Spawn a heart at the top of the cat's head
+  const spawnHeart = () => {
+    const size = 128 * scaleRef.current;
+    // Spawn near the upper center (head area)
+    const startX = size * 0.35 + Math.random() * (size * 0.3);
+    const startY = size * 0.15 + Math.random() * (size * 0.1);
+
+    const newHeart = {
+      id: Math.random(),
+      x: startX,
+      y: startY,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: 0.8 + Math.random() * 1.2,
+      opacity: 1.0,
+      scale: 0.5 + Math.random() * 0.4,
+    };
+    setHearts((prev) => [...prev, newHeart]);
+  };
+
+  // Hearts particle animation loop
+  useEffect(() => {
+    if (hearts.length === 0) return;
+
+    const interval = setInterval(() => {
+      setHearts((prev) =>
+        prev
+          .map((h) => ({
+            ...h,
+            y: h.y - h.vy,
+            x: h.x + Math.sin(h.y * 0.08) * 0.4 + h.vx,
+            opacity: h.opacity - 0.015,
+            scale: h.scale + 0.003,
+          }))
+          .filter((h) => h.opacity > 0)
+      );
+    }, 32);
+
+    return () => clearInterval(interval);
+  }, [hearts]);
+
+  // Periodically spawn hearts while petting state is active
+  useEffect(() => {
+    if (state !== 'petting') return;
+
+    spawnHeart();
+    const spawnTimer = setInterval(() => {
+      spawnHeart();
+    }, 300);
+
+    return () => clearInterval(spawnTimer);
+  }, [state, scale]);
+
+  // Steam puff particles when heat is very high
+  useEffect(() => {
+    if (typingHeat < 0.7) {
+      setSteamPuffs([]);
+      return;
+    }
+
+    const spawnSteam = () => {
+      const size = 128 * scaleRef.current;
+      setSteamPuffs(prev => {
+        // Max 6 puffs at once
+        if (prev.length >= 6) return prev;
+        const side = Math.random() > 0.5 ? 1 : -1;
+        return [...prev, {
+          id: Math.random(),
+          x: size * 0.5 + side * (size * 0.15 + Math.random() * size * 0.1),
+          y: size * 0.08,
+          vx: side * (0.4 + Math.random() * 0.6),
+          vy: -(0.6 + Math.random() * 0.8),
+          opacity: 0.85,
+          size: 6 + Math.random() * 8,
+        }];
+      });
+    };
+
+    spawnSteam();
+    const interval = setInterval(spawnSteam, 220);
+    return () => clearInterval(interval);
+  }, [typingHeat, scale]);
+
+  // Animate steam puffs
+  useEffect(() => {
+    if (steamPuffs.length === 0) return;
+    const interval = setInterval(() => {
+      setSteamPuffs(prev =>
+        prev
+          .map(p => ({
+            ...p,
+            x: p.x + p.vx,
+            y: p.y + p.vy,
+            vy: p.vy * 0.97,
+            opacity: p.opacity - 0.025,
+            size: p.size + 0.5,
+          }))
+          .filter(p => p.opacity > 0)
+      );
+    }, 30);
+    return () => clearInterval(interval);
+  }, [steamPuffs]);
 
   // Coordinate tracking refs
   const cursorPosRef = useRef({ x: 0, y: 0 });
@@ -384,9 +517,59 @@ export default function Mascot({ state, frame, scale, onDragStart }) {
 
       if (alpha > 0) {
         window.electronAPI.setIgnoreMouseEvents(false);
+
+        // Detect petting on the head (upper region, alpha > 0)
+        if (y < 550 && onPet) {
+          const lastMove = lastMovePosRef.current;
+          const dx = x - lastMove.x;
+          const dy = y - lastMove.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+
+          if (d > 2 && d < 200) {
+            const now = Date.now();
+            const petHistory = petHistoryRef.current;
+            petHistory.push({ dx, dy, time: now });
+
+            // Clean history older than 600ms
+            while (petHistory.length > 0 && now - petHistory[0].time > 600) {
+              petHistory.shift();
+            }
+
+            // Count direction reversals on X and Y axes
+            let xReversals = 0;
+            let yReversals = 0;
+            let lastSigX = 0;
+            let lastSigY = 0;
+
+            for (const move of petHistory) {
+              if (Math.abs(move.dx) > 5) {
+                const sigX = Math.sign(move.dx);
+                if (lastSigX !== 0 && sigX !== lastSigX) {
+                  xReversals++;
+                }
+                lastSigX = sigX;
+              }
+
+              if (Math.abs(move.dy) > 5) {
+                const sigY = Math.sign(move.dy);
+                if (lastSigY !== 0 && sigY !== lastSigY) {
+                  yReversals++;
+                }
+                lastSigY = sigY;
+              }
+            }
+
+            // Must change directions at least twice in 600ms (rubbing back and forth)
+            if (xReversals >= 2 || yReversals >= 2) {
+              onPet();
+            }
+          }
+        }
       } else {
         window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
       }
+
+      lastMovePosRef.current = { x, y };
     } else {
       window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
     }
@@ -422,6 +605,11 @@ export default function Mascot({ state, frame, scale, onDragStart }) {
 
   const displaySize = 128 * scale;
 
+  // Pulse scale for rage shake — subtle bounce at high heat
+  const rageScale = state === 'typing_red'
+    ? 1 + Math.sin(Date.now() / 80) * 0.012 * typingHeat
+    : 1;
+
   return (
     <div 
       className="mascot-container"
@@ -429,15 +617,62 @@ export default function Mascot({ state, frame, scale, onDragStart }) {
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
       onContextMenu={handleContextMenu}
+      style={{
+        position: 'relative',
+        width: `${displaySize}px`,
+        height: `${displaySize}px`
+      }}
     >
       <canvas
         ref={canvasRef}
         className="mascot-sprite"
         style={{
           width: `${displaySize}px`,
-          height: `${displaySize}px`
+          height: `${displaySize}px`,
+          transform: `scale(${rageScale})`,
+          transition: state === 'typing_red' ? 'none' : 'transform 0.1s ease',
         }}
       />
+
+      {/* Steam puffs rendered as white blobs above the cat's head */}
+      {steamPuffs.map(p => (
+        <div
+          key={p.id}
+          style={{
+            position: 'absolute',
+            left: `${p.x}px`,
+            top: `${p.y}px`,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            borderRadius: '50%',
+            background: 'white',
+            opacity: p.opacity,
+            pointerEvents: 'none',
+            transform: 'translate(-50%, -50%)',
+            filter: 'blur(2px)',
+            zIndex: 3,
+          }}
+        />
+      ))}
+
+      {transparentHeartUrl && hearts.map((h) => (
+        <img
+          key={h.id}
+          src={transparentHeartUrl}
+          alt="purr heart"
+          style={{
+            position: 'absolute',
+            left: `${h.x}px`,
+            top: `${h.y}px`,
+            width: `${16 * h.scale}px`,
+            height: `${16 * h.scale}px`,
+            opacity: h.opacity,
+            pointerEvents: 'none',
+            transform: 'translate(-50%, -50%)',
+            imageRendering: 'pixelated',
+          }}
+        />
+      ))}
     </div>
   );
 }

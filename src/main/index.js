@@ -100,12 +100,17 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Start the global keystroke hooks
+  // Start the global keystroke and scroll hooks
   try {
     uIOhook.start();
     uIOhook.on('keydown', (e) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-keystroke', e);
+      }
+    });
+    uIOhook.on('wheel', (e) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('global-scroll', e);
       }
     });
   } catch (err) {
