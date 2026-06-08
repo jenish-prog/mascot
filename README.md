@@ -56,3 +56,39 @@ npm run package
 - [Vite](https://vitejs.dev/)
 - [uiohook-napi](https://github.com/Snosky/uiohook-napi) — global keyboard hooks
 - [electron-builder](https://www.electron.build/) — packaging
+
+## AI Software Integration (Local HTTP API)
+
+The mascot exposes a local HTTP API on port `40900` so that external AI editors and environments (Claude Desktop, VS Code, ChatGPT, Antigravity IDE, etc.) can trigger mascot thinking, success, and error animations.
+
+### API Endpoints
+
+- **Start Thinking**: `GET http://127.0.0.1:40900/thinking`
+- **Finish / Success (Done)**: `GET http://127.0.0.1:40900/done` (Plays hop + meow sound, resets to idle in 2.5s)
+- **Error**: `GET http://127.0.0.1:40900/error`
+- **Reset to Idle**: `GET http://127.0.0.1:40900/idle`
+
+### Example Integration
+
+**JavaScript / Fetch (Browser Extensions, ChatGPT userscripts, VS Code extensions):**
+```javascript
+// Before making the AI API request:
+fetch('http://127.0.0.1:40900/thinking');
+
+// On success:
+fetch('http://127.0.0.1:40900/done');
+
+// On error:
+fetch('http://127.0.0.1:40900/error');
+```
+
+**Python (Custom CLI Tools, Backends like Odysseus, Claude Desktop wrappers):**
+```python
+import urllib.request
+
+def set_mascot_state(state):
+    try:
+        urllib.request.urlopen(f"http://127.0.0.1:40900/{state}", timeout=1)
+    except Exception:
+        pass # Mascot app not running
+```

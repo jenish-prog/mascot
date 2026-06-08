@@ -253,6 +253,23 @@ export default function Mascot({ state, frame, scale, typingHeat = 0, onDragStar
     };
   }, []);
 
+  // Handle done state sound and automatic reset to idle after 2.5s
+  useEffect(() => {
+    if (state === 'done') {
+      const audio = new Audio('/sounds/meow.mp3');
+      audio.play().catch((err) => console.error('Failed to play meow sound:', err));
+
+      const timer = setTimeout(() => {
+        if (window.electron && window.electron.ipcRenderer) {
+          window.electron.ipcRenderer.send('mascot-state-set', 'idle');
+        }
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [state]);
+
   // Spawn a heart at the top of the cat's head
   const spawnHeart = () => {
     const size = 128 * scaleRef.current;
@@ -609,6 +626,39 @@ export default function Mascot({ state, frame, scale, typingHeat = 0, onDragStar
   const rageScale = state === 'typing_red'
     ? 1 + Math.sin(Date.now() / 80) * 0.012 * typingHeat
     : 1;
+
+  const aiStates = ['thinking', 'done', 'error'];
+  if (aiStates.includes(state)) {
+    return (
+      <div 
+        className="mascot-container"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onMouseDown={handleMouseDown}
+        onContextMenu={handleContextMenu}
+        style={{
+          position: 'relative',
+          width: `${displaySize}px`,
+          height: `${displaySize}px`
+        }}
+      >
+        <img
+          src={`/sprites/${state}.png`}
+          className={`mascot-sprite state-${state}`}
+          style={{
+            width: `${displaySize}px`,
+            height: `${displaySize}px`,
+            imageRendering: 'pixelated',
+          }}
+        />
+        {state === 'thinking' && (
+          <div className="speech-bubble" style={{ top: '-40px', right: '-20px' }}>
+            Thinking...
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div 

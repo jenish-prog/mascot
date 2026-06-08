@@ -83,6 +83,10 @@ function createWindow() {
   // Set initially to click through transparent parts
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
+  // Setup mascot thinking/done state IPC
+  const { setupMascotIPC } = require('./mascot-ipc');
+  setupMascotIPC(mainWindow);
+
   const cursorInterval = setInterval(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       const cursor = screen.getCursorScreenPoint();

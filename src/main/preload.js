@@ -37,3 +37,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('global-scroll', listener);
   },
 });
+
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    on: (channel, fn) => ipcRenderer.on(channel, (event, ...args) => fn(event, ...args)),
+    removeListener: (channel, fn) => ipcRenderer.removeListener(channel, fn),
+    send: (channel, ...args) => ipcRenderer.send(channel, ...args),
+    invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  },
+});

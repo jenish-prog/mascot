@@ -76,3 +76,16 @@ html, body, #root {
   cursor: grabbing;
   transform: scale(0.95);
 }
+
+@keyframes happy-hop {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.mascot-sprite.state-done {
+  animation: happy-hop 0.4s ease infinite;
+}

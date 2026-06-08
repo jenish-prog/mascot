@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Mascot from './components/Mascot.jsx';
+import useMascotState from './hooks/useMascotState.js';
 
 export default function App() {
   const [state, setState] = useState('idle'); // 'idle', 'typing', 'typing_red', 'sleeping', 'dragging'
@@ -7,6 +8,7 @@ export default function App() {
   const [scale, setScale] = useState(1.0);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [typingHeat, setTypingHeat] = useState(0); // 0 = calm, 1 = fully red-rage
+  const { mascotState } = useMascotState();
 
   const typingTimeoutRef = useRef(null);
   const huntingTimeoutRef = useRef(null);
@@ -360,9 +362,11 @@ export default function App() {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
+  const activeState = (mascotState && mascotState !== 'idle') ? mascotState : state;
+
   return (
     <Mascot
-      state={state}
+      state={activeState}
       frame={frame}
       scale={scale}
       typingHeat={typingHeat}
